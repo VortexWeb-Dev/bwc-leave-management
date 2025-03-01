@@ -4,163 +4,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BWC | Sales Rankings Dashboard</title>
+    <title>BWC - Employee Leave Balance</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        body {
+        * {
             font-family: 'Inter', sans-serif;
         }
 
-        .shimmer {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
+        body {
+            overflow: hidden;
         }
 
-        @keyframes shimmer {
+        .scrollbar::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 5px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Loading animation */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4f46e5;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
             0% {
-                background-position: -200% 0;
+                transform: rotate(0deg);
             }
 
             100% {
-                background-position: 200% 0;
+                transform: rotate(360deg);
             }
         }
 
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            min-width: 160px;
-            z-index: 10;
-            border-radius: 0.375rem;
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
         }
 
-        .dropdown:hover .dropdown-content {
-            display: block;
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
         }
     </style>
 </head>
 
-<body class="bg-gray-50 text-gray-900">
-    <div class="min-h-screen mx-auto">
+<body class="bg-gray-50 text-slate-900 h-screen w-screen overflow-hidden">
+    <div class="flex flex-col h-full w-full">
         <!-- Header -->
-        <header class="bg-white border-b border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16 items-center">
-                    <h1 class="text-xl font-semibold">BWC | Sales Rankings Dashboard</h1>
-                    <div class="flex items-center space-x-4">
-                        <div class="dropdown relative">
-                            <button id="filterBtn" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                                <i class="fas fa-filter mr-2"></i>
-                                <span id="currentFilter">All Time</span>
-                                <i class="fas fa-chevron-down ml-2"></i>
-                            </button>
-                            <div class="dropdown-content right-0 mt-2 bg-white border border-gray-200 rounded-md shadow-lg">
-                                <div class="py-1">
-                                    <a href="#" class="filter-option block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-year="" data-month="">All Time</a>
-                                    <div class="border-t border-gray-100 my-1"></div>
-                                    <a href="#" class="filter-option block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-year="2025" data-month="">2025 (All)</a>
-                                    <a href="#" class="filter-option block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-year="2025" data-month="1">January 2025</a>
-                                    <a href="#" class="filter-option block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-year="2025" data-month="2">February 2025</a>
-                                    <a href="#" class="filter-option block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-year="2025" data-month="3">March 2025</a>
-                                    <div class="border-t border-gray-100 my-1"></div>
-                                    <a href="#" class="filter-option block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-year="2024" data-month="">2024 (All)</a>
-                                </div>
-                            </div>
-                        </div>
-                        <button id="refreshBtn" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
+        <header class="bg-white border-b border-gray-200 px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <h1 class="text-2xl font-bold text-slate-800">BWC</h1>
+                    <span class="text-gray-400">|</span>
+                    <h2 class="text-xl text-slate-600">Employee Leave Balance</h2>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                    <div class="flex items-center">
-                        <div class="p-3 bg-blue-100 rounded-full">
-                            <i class="fas fa-trophy text-blue-600"></i>
+        <!-- Main content -->
+        <main class="flex-1 overflow-hidden p-6">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm h-full flex flex-col">
+                <!-- Filters -->
+                <div class="p-4 border-b border-gray-200 space-y-4">
+                    <div class="flex flex-wrap gap-4 items-end">
+                        <!-- Search -->
+                        <div class="w-full md:w-64">
+                            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                            <input
+                                type="text"
+                                id="search"
+                                placeholder="Search by name or ID..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
-                        <div class="ml-4">
-                            <h2 class="text-sm font-medium text-gray-500">Top Performer</h2>
-                            <p id="topPerformer" class="text-xl font-semibold">Loading...</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                    <div class="flex items-center">
-                        <div class="p-3 bg-emerald-100 rounded-full">
-                            <i class="fas fa-check-circle text-emerald-600"></i>
-                        </div>
-                        <div class="ml-4">
-                            <h2 class="text-sm font-medium text-gray-500">Total Closed Deals</h2>
-                            <p id="totalDeals" class="text-xl font-semibold">Loading...</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                    <div class="flex items-center">
-                        <div class="p-3 bg-violet-100 rounded-full">
-                            <i class="fas fa-coins text-violet-600"></i>
-                        </div>
-                        <div class="ml-4">
-                            <h2 class="text-sm font-medium text-gray-500">Total Value</h2>
-                            <p id="totalValue" class="text-xl font-semibold">Loading...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Rankings Table -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-                <div class="p-6 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Sales Rankings</h2>
-                    <p class="text-sm text-gray-500 mt-1" id="lastUpdated">Last updated: Loading...</p>
+                        <!-- Filter by remaining leave -->
+                        <div class="w-full md:w-48">
+                            <label for="leave-filter" class="block text-sm font-medium text-gray-700 mb-1">Remaining Leave</label>
+                            <select
+                                id="leave-filter"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">All</option>
+                                <option value="no-leave">No Leave (0)</option>
+                                <option value="low-leave">Low Leave (1-5)</option>
+                                <option value="sufficient">Sufficient (6+)</option>
+                            </select>
+                        </div>
+
+                        <!-- Sort by -->
+                        <div class="w-full md:w-48">
+                            <label for="sort-by" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                            <select
+                                id="sort-by"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="name-asc">Name (A-Z)</option>
+                                <option value="name-desc">Name (Z-A)</option>
+                                <option value="leave-asc">Leave Remaining (Low-High)</option>
+                                <option value="leave-desc">Leave Remaining (High-Low)</option>
+                            </select>
+                        </div>
+
+                        <!-- Reset filters -->
+                        <button
+                            id="reset-filters"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            Reset Filters
+                        </button>
+                    </div>
+
+                    <div id="active-filters" class="flex flex-wrap gap-2 text-sm hidden">
+                        <!-- Active filters will be displayed here -->
+                    </div>
                 </div>
 
-                <div class="relative overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-50 border-b border-gray-200">
+                <!-- Table container -->
+                <div class="flex-1 overflow-auto scrollbar p-4 relative">
+                    <!-- Loading state -->
+                    <div id="loading-container" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
+                        <div class="flex flex-col items-center">
+                            <div class="spinner mb-3"></div>
+                            <p class="text-gray-600 font-medium">Loading data...</p>
+                        </div>
+                    </div>
+
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Closed Deals</th>
-                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Taken</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining Leave</th>
                             </tr>
                         </thead>
-                        <tbody id="rankingsTableBody" class="divide-y divide-gray-200">
-                            <!-- Loading state -->
-                            <tr>
-                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                                    <div class="flex justify-center items-center space-x-2">
-                                        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span>Loading rankings...</span>
-                                    </div>
-                                </td>
-                            </tr>
+                        <tbody id="employee-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Table rows will be dynamically generated here -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Footer with stats -->
+                <div class="p-4 border-t border-gray-200">
+                    <div class="flex flex-wrap justify-between items-center text-sm text-gray-500">
+                        <div id="employee-count">Showing <span class="font-medium text-gray-900" id="visible-count">0</span> of <span class="font-medium text-gray-900" id="total-count">0</span> employees</div>
+                        <div>Average remaining leave: <span class="font-medium text-gray-900" id="avg-leave">0.0</span> days</div>
+                    </div>
                 </div>
             </div>
         </main>
 
         <!-- Footer -->
-        <footer class="bg-white border-t border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-center h-12 items-center">
-                    <h1 class="text-xs">
-                        &copy; <?= date('Y'); ?> VortexWeb (<a href="https://vortexweb.cloud/" class="text-blue-600 hover:underline">https://vortexweb.cloud/</a>). All rights reserved.
-                    </h1>
+        <footer class="bg-white border-t border-gray-200 px-6 py-3">
+            <div class="flex justify-between items-center text-sm text-gray-500">
+                <div>© <?= date('Y'); ?> BWC. All rights reserved.</div>
+                <div class="flex items-center space-x-1">
+                    <span>Powered by</span>
+                    <a href="https://vortexweb.cloud/" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center">
+                        VortexWeb
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
                 </div>
             </div>
         </footer>
