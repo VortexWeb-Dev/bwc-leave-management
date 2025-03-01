@@ -1,227 +1,217 @@
 document.addEventListener("DOMContentLoaded", function () {
-  const searchInput = document.getElementById("search");
-  const leaveFilter = document.getElementById("leave-filter");
-  const sortBy = document.getElementById("sort-by");
-  const resetButton = document.getElementById("reset-filters");
-  const activeFilters = document.getElementById("active-filters");
-  const tableBody = document.getElementById("employee-table-body");
-  const visibleCountEl = document.getElementById("visible-count");
-  const totalCountEl = document.getElementById("total-count");
-  const avgLeaveEl = document.getElementById("avg-leave");
-  const loadingContainer = document.getElementById("loading-container");
+  let currentYear = null;
+  let currentMonth = null;
 
-  // Store the data and rows for filtering operations
-  let employeeData = [];
-  let rows = [];
+  // Load initial data
+  fetchRankingsData();
 
-  // Fetch data from data.php
-  fetchData();
+  // Set up filter options
+  document.querySelectorAll(".filter-option").forEach((option) => {
+    option.addEventListener("click", function (e) {
+      e.preventDefault();
+      currentYear = this.getAttribute("data-year");
+      currentMonth = this.getAttribute("data-month");
 
-  function fetchData() {
-    // Show loading animation
-    loadingContainer.style.display = "flex";
+      // Update filter display
+      updateFilterDisplay();
 
-    fetch("./data.php")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
+      // Fetch new data
+      fetchRankingsData();
+    });
+  });
+
+  // Set up refresh button
+  document.getElementById("refreshBtn").addEventListener("click", function () {
+    fetchRankingsData();
+  });
+
+  function updateFilterDisplay() {
+    let filterText = "All Time";
+
+    if (currentYear) {
+      if (currentMonth) {
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        filterText = `${monthNames[parseInt(currentMonth) - 1]} ${currentYear}`;
+      } else {
+        filterText = `${currentYear} (All)`;
+      }
+    }
+
+    document.getElementById("currentFilter").textContent = filterText;
+  }
+
+  function fetchRankingsData() {
+    // Show loading state
+    document.getElementById("rankingsTableBody").innerHTML = `
+            <tr>
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                    <div class="flex justify-center items-center space-x-2">
+                        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Loading rankings...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+    // Build URL with query parameters
+    let url = "data.php";
+    const params = new URLSearchParams();
+
+    if (currentYear) {
+      params.append("year", currentYear);
+    }
+
+    if (currentMonth) {
+      params.append("month", currentMonth);
+    }
+
+    if (params.toString()) {
+      url += "?" + params.toString();
+    }
+
+    // Fetch data from data.php
+    fetch(url)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          renderRankings(result.data);
+          updateStats(result.data);
+          updateLastUpdated(result.timestamp);
+        } else {
+          showError("Failed to load rankings data");
         }
-        return response.json();
-      })
-      .then((data) => {
-        employeeData = data;
-        renderTable(data);
-
-        // Hide loading animation with a slight delay for smoother transition
-        setTimeout(() => {
-          loadingContainer.style.display = "none";
-          document.querySelector("table").classList.add("fade-in");
-        }, 300);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
-        tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="px-6 py-4 text-center text-red-500">
-                            Error loading data. Please try again later.
-                        </td>
-                    </tr>
-                `;
-        loadingContainer.style.display = "none";
+        showError("Error connecting to the server");
       });
   }
 
-  function renderTable(data) {
-    // Clear existing rows
-    tableBody.innerHTML = "";
+  function renderRankings(data) {
+    const tableBody = document.getElementById("rankingsTableBody");
 
-    // Generate table rows
-    data.forEach((employee) => {
-      const row = document.createElement("tr");
-      row.className = "hover:bg-gray-50 transition-colors";
-      row.dataset.id = employee.id;
-      row.dataset.name = employee.name.toLowerCase();
-      row.dataset.remaining = employee.remaining_leave;
-
-      // Determine badge color based on remaining leave
-      const badgeClass =
-        employee.remaining_leave == 0
-          ? "bg-red-100 text-red-800"
-          : employee.remaining_leave <= 5
-          ? "bg-yellow-100 text-yellow-800"
-          : "bg-green-100 text-green-800";
-
-      row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${employee.id}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.name}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">${employee.leave_taken}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">
-                        ${employee.remaining_leave}
-                    </span>
-                </td>
+    if (data.length === 0) {
+      tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                        No data available for the selected time period
+                    </td>
+                </tr>
             `;
-
-      tableBody.appendChild(row);
-    });
-
-    // Update rows reference
-    rows = Array.from(tableBody.querySelectorAll("tr"));
-
-    // Update counts
-    totalCountEl.textContent = data.length;
-    updateEmployeeCount();
-
-    // Apply initial filters
-    applyFilters();
-  }
-
-  function updateEmployeeCount() {
-    const visibleRows = rows.filter((row) => !row.classList.contains("hidden"));
-    visibleCountEl.textContent = visibleRows.length;
-
-    // Update average leave
-    const totalRemaining = visibleRows.reduce(
-      (sum, row) => sum + parseInt(row.dataset.remaining, 10),
-      0
-    );
-    const avgLeave =
-      visibleRows.length > 0
-        ? (totalRemaining / visibleRows.length).toFixed(1)
-        : "0.0";
-    avgLeaveEl.textContent = avgLeave;
-  }
-
-  function applyFilters() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const leaveOption = leaveFilter.value;
-    const sortOption = sortBy.value;
-
-    // Reset visibility
-    rows.forEach((row) => row.classList.remove("hidden"));
-
-    // Apply search filter
-    if (searchTerm) {
-      rows.forEach((row) => {
-        const id = row.dataset.id;
-        const name = row.dataset.name;
-        if (!id.includes(searchTerm) && !name.includes(searchTerm)) {
-          row.classList.add("hidden");
-        }
-      });
+      return;
     }
 
-    // Apply leave filter
-    if (leaveOption !== "all") {
-      rows.forEach((row) => {
-        const remaining = parseInt(row.dataset.remaining, 10);
-        if (
-          (leaveOption === "no-leave" && remaining !== 0) ||
-          (leaveOption === "low-leave" && (remaining === 0 || remaining > 5)) ||
-          (leaveOption === "sufficient" && remaining < 6)
-        ) {
-          row.classList.add("hidden");
-        }
-      });
-    }
+    let html = "";
 
-    // Apply sorting
-    const sortedRows = [...rows].sort((a, b) => {
-      if (sortOption === "name-asc") {
-        return a.dataset.name.localeCompare(b.dataset.name);
-      } else if (sortOption === "name-desc") {
-        return b.dataset.name.localeCompare(a.dataset.name);
-      } else if (sortOption === "leave-asc") {
-        return (
-          parseInt(a.dataset.remaining, 10) - parseInt(b.dataset.remaining, 10)
-        );
-      } else if (sortOption === "leave-desc") {
-        return (
-          parseInt(b.dataset.remaining, 10) - parseInt(a.dataset.remaining, 10)
-        );
+    data.forEach((item, index) => {
+      // Determine row highlight
+      let rowClass = "";
+      let rankBadgeClass = "bg-gray-100 text-gray-800";
+
+      if (item.RANK === 1) {
+        rowClass = "bg-yellow-50";
+        rankBadgeClass = "bg-yellow-100 text-yellow-800";
+      } else if (item.RANK === 2) {
+        rowClass = "bg-gray-50";
+        rankBadgeClass = "bg-gray-100 text-gray-800";
+      } else if (item.RANK === 3) {
+        rowClass = "bg-orange-50";
+        rankBadgeClass = "bg-orange-100 text-orange-800";
       }
-      return 0;
+
+      html += `
+                <tr class="${rowClass}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${rankBadgeClass}">
+                            ${item.RANK}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-medium">${item.NAME}</div>
+                        <div class="text-xs text-gray-500">ID: ${
+                          item.USER_ID
+                        }</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${item.CLOSED_DEALS}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${formatCurrency(item.TOTAL_VALUE)}
+                    </td>
+                </tr>
+            `;
     });
 
-    // Re-append sorted rows
-    sortedRows.forEach((row) => tableBody.appendChild(row));
-
-    // Update active filters display
-    updateActiveFilters();
-
-    // Update count
-    updateEmployeeCount();
+    tableBody.innerHTML = html;
   }
 
-  function updateActiveFilters() {
-    const activeFiltersList = [];
+  function updateStats(data) {
+    // Calculate total deals and value
+    let totalDeals = 0;
+    let totalValue = 0;
+    let topPerformer = "None";
 
-    if (searchInput.value) {
-      activeFiltersList.push(`Search: "${searchInput.value}"`);
+    if (data.length > 0) {
+      data.forEach((item) => {
+        totalDeals += parseInt(item.CLOSED_DEALS);
+        totalValue += parseFloat(item.TOTAL_VALUE);
+      });
+
+      // Get top performer (first in the list since it's already sorted)
+      if (data[0].CLOSED_DEALS > 0) {
+        topPerformer = data[0].NAME;
+      }
     }
 
-    if (leaveFilter.value !== "all") {
-      const leaveText = leaveFilter.options[leaveFilter.selectedIndex].text;
-      activeFiltersList.push(`Leave: ${leaveText}`);
-    }
+    // Update the stats
+    document.getElementById("totalDeals").textContent = totalDeals;
+    document.getElementById("totalValue").textContent =
+      formatCurrency(totalValue);
+    document.getElementById("topPerformer").textContent = topPerformer;
+  }
 
-    if (sortBy.value !== "name-asc") {
-      const sortText = sortBy.options[sortBy.selectedIndex].text;
-      activeFiltersList.push(`Sort: ${sortText}`);
-    }
-
-    if (activeFiltersList.length > 0) {
-      activeFilters.innerHTML = activeFiltersList
-        .map(
-          (filter) =>
-            `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">${filter}</span>`
-        )
-        .join("");
-      activeFilters.classList.remove("hidden");
-    } else {
-      activeFilters.classList.add("hidden");
-      activeFilters.innerHTML = "";
+  function updateLastUpdated(timestamp) {
+    if (timestamp) {
+      document.getElementById("lastUpdated").textContent =
+        "Last updated: " + formatTimestamp(timestamp);
     }
   }
 
-  function resetFilters() {
-    searchInput.value = "";
-    leaveFilter.value = "all";
-    sortBy.value = "name-asc";
-
-    rows.forEach((row) => row.classList.remove("hidden"));
-    updateActiveFilters();
-    applyFilters();
+  function showError(message) {
+    document.getElementById("rankingsTableBody").innerHTML = `
+            <tr>
+                <td colspan="4" class="px-6 py-4 text-center text-red-500">
+                    <i class="fas fa-exclamation-circle mr-2"></i> ${message}
+                </td>
+            </tr>
+        `;
   }
 
-  // Event listeners
-  searchInput.addEventListener("input", applyFilters);
-  leaveFilter.addEventListener("change", applyFilters);
-  sortBy.addEventListener("change", applyFilters);
-  resetButton.addEventListener("click", resetFilters);
+  function formatCurrency(value) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "AED",
+      minimumFractionDigits: 0,
+    }).format(value);
+  }
 
-  // Add refresh button event listener
-  document
-    .getElementById("refresh-button")
-    ?.addEventListener("click", fetchData);
+  function formatTimestamp(timestamp) {
+    return new Date(timestamp).toLocaleString();
+  }
 });
